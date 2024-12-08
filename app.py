@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, render_template_string
 import pandas as pd
 import numpy as np
+import pickle
 import os
 import logging
 
@@ -24,6 +25,21 @@ COLUMNS = ['Kilometers_Driven', 'Mileage', 'Engine', 'Power', 'Seats', 'Car_Age'
            'Brand_Mercedes-Benz', 'Brand_Mini', 'Brand_Mitsubishi', 'Brand_Nissan',
            'Brand_Porsche', 'Brand_Renault', 'Brand_Skoda', 'Brand_Smart', 'Brand_Tata',
            'Brand_Toyota', 'Brand_Volkswagen', 'Brand_Volvo']
+
+# Load the trained model
+def load_model():
+    model_path = os.getenv('MODEL_PATH', 'E:/usedcarpriceprediction3.pkl')
+    try:
+        with open(model_path, 'rb') as file:
+            model = pickle.load(file)
+        logging.info("Model loaded successfully!")
+        return model
+    except Exception as e:
+        logging.error(f"Error loading model: {str(e)}")
+        return None
+
+# Initialize the model
+model = load_model()
 
 @app.route('/', methods=['GET'])
 def home():
@@ -463,9 +479,30 @@ def renderPredictPage():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    if model is None:
+        return jsonify({'error': 'Model not loaded'}), 500
+
     try:
-        # Generate a random prediction between 1 and 100 lakhs
-        prediction = np.random.uniform(1, 100)
+        input_df = pd.DataFrame(0, index=[0], columns=COLUMNS)
+        
+        input_df['Kilometers_Driven'] = float(request.form['kilometers'])
+        input_df['Mileage'] = float(request.form['mileage'])
+        input_df['Engine'] = float(request.form['engine'])
+        input_df['Power'] = float(request.form['power'])
+        input_df['Seats'] = int(request.form['seats'])
+        input_df['Car_Age'] = int(request.form['car_age'])
+        
+        location_col = f"Location_{request.form['location']}"
+        fuel_type_col = f"Fuel_Type_{request.form['fuel_type']}"
+        transmission_col = f"Transmission_{request.form['transmission']}"
+        owner_type_col = f"Owner_Type_{request.form['owner_type']}"
+        brand_col = f"Brand_{request.form['brand']}"
+        
+        for col in [location_col, fuel_type_col, transmission_col, owner_type_col, brand_col]:
+            if col in input_df.columns:
+                input_df[col] = 1
+        
+        prediction = model.predict(input_df)
         
         return render_template_string('''
             <!DOCTYPE html>
@@ -572,7 +609,7 @@ def predict():
                     <div class="result">
                         <div class="price">
                             <span class="currency-symbol">₹</span>
-                            {{ "{:,.2f}".format(prediction) }}Lakhs
+                            {{ "{:,.2f}".format(prediction[0]) }}Lakhs
                         </div>
                     </div>
                     <div class="back-button">
@@ -589,12 +626,56 @@ def predict():
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
+    if model is None:
+        return jsonify({'error': 'Model not loaded'}), 500
+
     try:
-        # Generate a random prediction between 1 and 100 lakhs
-        prediction = np.random.uniform(1, 100)
+        data = request.get_json()
+        
+        input_df = pd.DataFrame(0, index=[0], columns=COLUMNS)
+        
+        numerical_columns = {
+            'Kilometers_Driven': float,
+            'Mileage': float,
+            'Engine': float,
+            'Power': float,
+            'Seats': int,
+            'Car_Age': int
+        }
+        
+        for col, dtype in numerical_columns.items():
+            if col in data:
+                input_df[col] = dtype(data[col])
+        
+        if 'Location' in data:
+            col = f"Location_{data['Location']}"
+            if col in input_df.columns:
+                input_df[col] = 1
+                
+        if 'Fuel_Type' in data:
+            col = f"Fuel_Type_{data['Fuel_Type']}"
+            if col in input_df.columns:
+                input_df[col] = 1
+                
+        if 'Transmission' in data:
+            col = f"Transmission_{data['Transmission']}"
+            if col in input_df.columns:
+                input_df[col] = 1
+                
+        if 'Owner_Type' in data:
+            col = f"Owner_Type_{data['Owner_Type']}"
+            if col in input_df.columns:
+                input_df[col] = 1
+                
+        if 'Brand' in data:
+            col = f"Brand_{data['Brand']}"
+            if col in input_df.columns:
+                input_df[col] = 1
+        
+        prediction = model.predict(input_df)
         
         return jsonify({
-            'predicted_price': float(prediction),
+            'predicted_price': float(prediction[0]),
             'status': 'success'
         })
         

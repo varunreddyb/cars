@@ -10,36 +10,23 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Define the columns based on your dataset structure
-COLUMNS = ['Kilometers_Driven', 'Mileage', 'Engine', 'Power', 'Seats', 'Car_Age',
-           'Location_Ahmedabad', 'Location_Bangalore', 'Location_Chennai', 'Location_Coimbatore',
-           'Location_Delhi', 'Location_Hyderabad', 'Location_Jaipur', 'Location_Kochi',
-           'Location_Kolkata', 'Location_Mumbai', 'Location_Pune',
-           'Fuel_Type_CNG', 'Fuel_Type_Diesel', 'Fuel_Type_Electric', 'Fuel_Type_LPG', 'Fuel_Type_Petrol',
-           'Transmission_Automatic', 'Transmission_Manual',
-           'Owner_Type_First', 'Owner_Type_Fourth & Above', 'Owner_Type_Second', 'Owner_Type_Third',
-           'Brand_Ambassador', 'Brand_Audi', 'Brand_BMW', 'Brand_Bentley', 'Brand_Chevrolet',
-           'Brand_Datsun', 'Brand_Fiat', 'Brand_Force', 'Brand_Ford', 'Brand_Honda',
-           'Brand_Hyundai', 'Brand_ISUZU', 'Brand_Isuzu', 'Brand_Jaguar', 'Brand_Jeep',
-           'Brand_Lamborghini', 'Brand_Land', 'Brand_Mahindra', 'Brand_Maruti',
-           'Brand_Mercedes-Benz', 'Brand_Mini', 'Brand_Mitsubishi', 'Brand_Nissan',
-           'Brand_Porsche', 'Brand_Renault', 'Brand_Skoda', 'Brand_Smart', 'Brand_Tata',
-           'Brand_Toyota', 'Brand_Volkswagen', 'Brand_Volvo']
-
-# Load the trained model
-def load_model():
-    model_path = os.getenv('MODEL_PATH', 'usedcarpriceprediction3.pkl')
+# Load the trained model and feature names
+def load_model_and_features():
+    model_path = os.getenv('MODEL_PATH', 'E:/usedcarpriceprediction3.pkl')
+    feature_names_path = os.getenv('FEATURE_NAMES_PATH', 'E:/feature_names.pkl')
     try:
         with open(model_path, 'rb') as file:
             model = pickle.load(file)
-        logging.info("Model loaded successfully!")
-        return model
+        with open(feature_names_path, 'rb') as file:
+            feature_names = pickle.load(file)
+        logging.info("Model and feature names loaded successfully!")
+        return model, feature_names
     except Exception as e:
-        logging.error(f"Error loading model: {str(e)}")
-        return None
+        logging.error(f"Error loading model or feature names: {str(e)}")
+        return None, None
 
-# Initialize the model
-model = load_model()
+# Initialize the model and feature names
+model, feature_names = load_model_and_features()
 
 @app.route('/', methods=['GET'])
 def home():
@@ -479,11 +466,11 @@ def renderPredictPage():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if model is None:
-        return jsonify({'error': 'Model not loaded'}), 500
+    if model is None or feature_names is None:
+        return jsonify({'error': 'Model or feature names not loaded'}), 500
 
     try:
-        input_df = pd.DataFrame(0, index=[0], columns=COLUMNS)
+        input_df = pd.DataFrame(0, index=[0], columns=feature_names)
         
         input_df['Kilometers_Driven'] = float(request.form['kilometers'])
         input_df['Mileage'] = float(request.form['mileage'])
@@ -626,13 +613,13 @@ def predict():
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
-    if model is None:
-        return jsonify({'error': 'Model not loaded'}), 500
+    if model is None or feature_names is None:
+        return jsonify({'error': 'Model or feature names not loaded'}), 500
 
     try:
         data = request.get_json()
         
-        input_df = pd.DataFrame(0, index=[0], columns=COLUMNS)
+        input_df = pd.DataFrame(0, index=[0], columns=feature_names)
         
         numerical_columns = {
             'Kilometers_Driven': float,

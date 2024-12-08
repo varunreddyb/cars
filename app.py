@@ -28,7 +28,7 @@ COLUMNS = ['Kilometers_Driven', 'Mileage', 'Engine', 'Power', 'Seats', 'Car_Age'
 
 # Load the trained model
 def load_model():
-    model_path = os.getenv('MODEL_PATH', 'E:/usedcarpriceprediction3.pkl')
+    model_path = os.getenv('MODEL_PATH', 'usedcarpriceprediction3.pkl')
     try:
         with open(model_path, 'rb') as file:
             model = pickle.load(file)

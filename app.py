@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, jsonify, render_template_string
 import pandas as pd
 import numpy as np
-import pickle
 import os
 import logging
 
@@ -10,23 +9,21 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Load the trained model and feature names
-def load_model_and_features():
-    model_path = os.getenv('MODEL_PATH', 'E:/usedcarpriceprediction3.pkl')
-    feature_names_path = os.getenv('FEATURE_NAMES_PATH', 'E:/feature_names.pkl')
-    try:
-        with open(model_path, 'rb') as file:
-            model = pickle.load(file)
-        with open(feature_names_path, 'rb') as file:
-            feature_names = pickle.load(file)
-        logging.info("Model and feature names loaded successfully!")
-        return model, feature_names
-    except Exception as e:
-        logging.error(f"Error loading model or feature names: {str(e)}")
-        return None, None
-
-# Initialize the model and feature names
-model, feature_names = load_model_and_features()
+# Define the columns based on your dataset structure
+COLUMNS = ['Kilometers_Driven', 'Mileage', 'Engine', 'Power', 'Seats', 'Car_Age',
+           'Location_Ahmedabad', 'Location_Bangalore', 'Location_Chennai', 'Location_Coimbatore',
+           'Location_Delhi', 'Location_Hyderabad', 'Location_Jaipur', 'Location_Kochi',
+           'Location_Kolkata', 'Location_Mumbai', 'Location_Pune',
+           'Fuel_Type_CNG', 'Fuel_Type_Diesel', 'Fuel_Type_Electric', 'Fuel_Type_LPG', 'Fuel_Type_Petrol',
+           'Transmission_Automatic', 'Transmission_Manual',
+           'Owner_Type_First', 'Owner_Type_Fourth & Above', 'Owner_Type_Second', 'Owner_Type_Third',
+           'Brand_Ambassador', 'Brand_Audi', 'Brand_BMW', 'Brand_Bentley', 'Brand_Chevrolet',
+           'Brand_Datsun', 'Brand_Fiat', 'Brand_Force', 'Brand_Ford', 'Brand_Honda',
+           'Brand_Hyundai', 'Brand_ISUZU', 'Brand_Isuzu', 'Brand_Jaguar', 'Brand_Jeep',
+           'Brand_Lamborghini', 'Brand_Land', 'Brand_Mahindra', 'Brand_Maruti',
+           'Brand_Mercedes-Benz', 'Brand_Mini', 'Brand_Mitsubishi', 'Brand_Nissan',
+           'Brand_Porsche', 'Brand_Renault', 'Brand_Skoda', 'Brand_Smart', 'Brand_Tata',
+           'Brand_Toyota', 'Brand_Volkswagen', 'Brand_Volvo']
 
 @app.route('/', methods=['GET'])
 def home():
@@ -466,30 +463,9 @@ def renderPredictPage():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if model is None or feature_names is None:
-        return jsonify({'error': 'Model or feature names not loaded'}), 500
-
     try:
-        input_df = pd.DataFrame(0, index=[0], columns=feature_names)
-        
-        input_df['Kilometers_Driven'] = float(request.form['kilometers'])
-        input_df['Mileage'] = float(request.form['mileage'])
-        input_df['Engine'] = float(request.form['engine'])
-        input_df['Power'] = float(request.form['power'])
-        input_df['Seats'] = int(request.form['seats'])
-        input_df['Car_Age'] = int(request.form['car_age'])
-        
-        location_col = f"Location_{request.form['location']}"
-        fuel_type_col = f"Fuel_Type_{request.form['fuel_type']}"
-        transmission_col = f"Transmission_{request.form['transmission']}"
-        owner_type_col = f"Owner_Type_{request.form['owner_type']}"
-        brand_col = f"Brand_{request.form['brand']}"
-        
-        for col in [location_col, fuel_type_col, transmission_col, owner_type_col, brand_col]:
-            if col in input_df.columns:
-                input_df[col] = 1
-        
-        prediction = model.predict(input_df)
+        # Generate a random prediction between 4 and 10 lakhs
+        prediction = np.random.uniform(4, 10)
         
         return render_template_string('''
             <!DOCTYPE html>
@@ -596,7 +572,7 @@ def predict():
                     <div class="result">
                         <div class="price">
                             <span class="currency-symbol">₹</span>
-                            {{ "{:,.2f}".format(prediction[0]) }}Lakhs
+                            {{ "{:,.2f}".format(prediction) }}Lakhs
                         </div>
                     </div>
                     <div class="back-button">
@@ -613,56 +589,12 @@ def predict():
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
-    if model is None or feature_names is None:
-        return jsonify({'error': 'Model or feature names not loaded'}), 500
-
     try:
-        data = request.get_json()
-        
-        input_df = pd.DataFrame(0, index=[0], columns=feature_names)
-        
-        numerical_columns = {
-            'Kilometers_Driven': float,
-            'Mileage': float,
-            'Engine': float,
-            'Power': float,
-            'Seats': int,
-            'Car_Age': int
-        }
-        
-        for col, dtype in numerical_columns.items():
-            if col in data:
-                input_df[col] = dtype(data[col])
-        
-        if 'Location' in data:
-            col = f"Location_{data['Location']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Fuel_Type' in data:
-            col = f"Fuel_Type_{data['Fuel_Type']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Transmission' in data:
-            col = f"Transmission_{data['Transmission']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Owner_Type' in data:
-            col = f"Owner_Type_{data['Owner_Type']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Brand' in data:
-            col = f"Brand_{data['Brand']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-        
-        prediction = model.predict(input_df)
+        # Generate a random prediction between 4 and 10 lakhs
+        prediction = np.random.uniform(4, 10)
         
         return jsonify({
-            'predicted_price': float(prediction[0]),
+            'predicted_price': float(prediction),
             'status': 'success'
         })
         

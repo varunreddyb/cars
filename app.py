@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Load the trained model and feature names
 def load_model_and_features():
-    model_path = os.getenv('MODEL_PATH', 'usedcarpriceprediction3.pkl')
+    model_path = os.getenv('MODEL_PATH', 'car_price_model.pkl')
     feature_names_path = os.getenv('FEATURE_NAMES_PATH', 'feature_names.pkl')
     try:
         with open(model_path, 'rb') as file:

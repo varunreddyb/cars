@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Load the trained model and feature names
 def load_model_and_features():
-    model_path = os.getenv('MODEL_PATH', 'gbm_model.pkl')  # Update to gbm_model.pkl
+    model_path = os.getenv('MODEL_PATH', 'updated_model.pkl')  # Update to updated_model.pkl
     feature_names_path = os.getenv('FEATURE_NAMES_PATH', 'feature_names.pkl')
     try:
         with open(model_path, 'rb') as file:
@@ -470,6 +470,14 @@ def predict():
         return jsonify({'error': 'Model or feature names not loaded'}), 500
 
     try:
+        # Extract the model from the dictionary
+        if isinstance(model, dict):
+            if 'model' not in model:
+                return jsonify({'error': 'Model not found in the loaded dictionary'}), 500
+            model_obj = model['model']  # Extract the model object
+        else:
+            model_obj = model  # If it's not a dictionary, assume it's the model object
+
         input_df = pd.DataFrame(0, index=[0], columns=feature_names)
         
         input_df['Kilometers_Driven'] = float(request.form['kilometers'])
@@ -489,7 +497,8 @@ def predict():
             if col in input_df.columns:
                 input_df[col] = 1
         
-        prediction = model.predict(input_df)
+        # Use the extracted model object for prediction
+        prediction = model_obj.predict(input_df)
         
         return render_template_string('''
             <!DOCTYPE html>
@@ -617,6 +626,14 @@ def api_predict():
         return jsonify({'error': 'Model or feature names not loaded'}), 500
 
     try:
+        # Extract the model from the dictionary
+        if isinstance(model, dict):
+            if 'model' not in model:
+                return jsonify({'error': 'Model not found in the loaded dictionary'}), 500
+            model_obj = model['model']  # Extract the model object
+        else:
+            model_obj = model  # If it's not a dictionary, assume it's the model object
+
         data = request.get_json()
         
         input_df = pd.DataFrame(0, index=[0], columns=feature_names)
@@ -659,7 +676,8 @@ def api_predict():
             if col in input_df.columns:
                 input_df[col] = 1
         
-        prediction = model.predict(input_df)
+        # Use the extracted model object for prediction
+        prediction = model_obj.predict(input_df)
         
         return jsonify({
             'predicted_price': float(prediction[0]),

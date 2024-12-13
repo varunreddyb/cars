@@ -374,12 +374,12 @@ def renderPredictPage():
             <h1>Car Price Prediction System</h1>
             <form action="/predict" method="post">
                 <div class="form-group">
-                    <label>Kilometers Driven:</label>
-                    <input type="number" name="kilometers" required placeholder="Enter kilometers driven">
+                    <label>Year:</label>
+                    <input type="number" name="year" required placeholder="Enter the year of manufacture">
                 </div>
                 <div class="form-group">
-                    <label>Mileage:</label>
-                    <input type="number" step="0.1" name="mileage" required placeholder="Enter mileage">
+                    <label>Kilometers Driven:</label>
+                    <input type="number" name="kilometers" required placeholder="Enter kilometers driven">
                 </div>
                 <div class="form-group">
                     <label>Engine (cc):</label>
@@ -392,10 +392,6 @@ def renderPredictPage():
                 <div class="form-group">
                     <label>Seats:</label>
                     <input type="number" name="seats" required placeholder="Enter number of seats">
-                </div>
-                <div class="form-group">
-                    <label>Car Age:</label>
-                    <input type="number" name="car_age" required placeholder="Enter car age">
                 </div>
                 <div class="form-group">
                     <label>Location:</label>
@@ -443,22 +439,6 @@ def renderPredictPage():
                         <option value="Fourth & Above">Fourth & Above</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Brand:</label>
-                    <select name="brand" required>
-                        <option value="" disabled selected>Select brand</option>
-                        <option value="Ambassador">Ambassador</option>
-                        <option value="Audi">Audi</option>
-                        <option value="BMW">BMW</option>
-                        <option value="Honda">Honda</option>
-                        <option value="Hyundai">Hyundai</option>
-                        <option value="Mahindra">Mahindra</option>
-                        <option value="Maruti">Maruti</option>
-                        <option value="Mercedes-Benz">Mercedes-Benz</option>
-                        <option value="Tata">Tata</option>
-                        <option value="Toyota">Toyota</option>
-                    </select>
-                </div>
                 <div class="button-container">
                     <button type="submit">Predict Price</button>
                 </div>
@@ -484,12 +464,13 @@ def predict():
 
         input_df = pd.DataFrame(0, index=[0], columns=feature_names)
         
+        # Fill in numerical features
+        input_df['Year'] = int(request.form['year'])
         input_df['Kilometers_Driven'] = float(request.form['kilometers'])
-        input_df['Mileage'] = float(request.form['mileage'])
         input_df['Engine'] = float(request.form['engine'])
         input_df['Power'] = float(request.form['power'])
         input_df['Seats'] = int(request.form['seats'])
-        input_df['Car_Age'] = int(request.form['car_age'])
+        input_df['Car_Age'] = 2024 - int(request.form['year'])  # Derived feature
         
         # Encode categorical features using LabelEncoders
         for feature, encoder in label_encoders.items():
@@ -638,8 +619,8 @@ def api_predict():
         input_df = pd.DataFrame(0, index=[0], columns=feature_names)
         
         numerical_columns = {
+            'Year': int,
             'Kilometers_Driven': float,
-            'Mileage': float,
             'Engine': float,
             'Power': float,
             'Seats': int,

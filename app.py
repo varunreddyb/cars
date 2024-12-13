@@ -10,23 +10,27 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Load the trained model and feature names
+# Load the trained model, feature names, and LabelEncoders
 def load_model_and_features():
-    model_path = os.getenv('MODEL_PATH', 'updated_model.pkl')  # Update to updated_model.pkl
+    model_path = os.getenv('MODEL_PATH', 'updated_model.pkl')
     feature_names_path = os.getenv('FEATURE_NAMES_PATH', 'feature_names.pkl')
+    label_encoders_path = os.getenv('LABEL_ENCODERS_PATH', 'label_encoders.pkl')
+    
     try:
         with open(model_path, 'rb') as file:
             model = pickle.load(file)
         with open(feature_names_path, 'rb') as file:
             feature_names = pickle.load(file)
-        logging.info("Model and feature names loaded successfully!")
-        return model, feature_names
+        with open(label_encoders_path, 'rb') as file:
+            label_encoders = pickle.load(file)
+        logging.info("Model, feature names, and LabelEncoders loaded successfully!")
+        return model, feature_names, label_encoders
     except Exception as e:
-        logging.error(f"Error loading model or feature names: {str(e)}")
-        return None, None
+        logging.error(f"Error loading model, feature names, or LabelEncoders: {str(e)}")
+        return None, None, None
 
-# Initialize the model and feature names
-model, feature_names = load_model_and_features()
+# Initialize the model, feature names, and LabelEncoders
+model, feature_names, label_encoders = load_model_and_features()
 
 @app.route('/', methods=['GET'])
 def home():
@@ -466,8 +470,8 @@ def renderPredictPage():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if model is None or feature_names is None:
-        return jsonify({'error': 'Model or feature names not loaded'}), 500
+    if model is None or feature_names is None or label_encoders is None:
+        return jsonify({'error': 'Model, feature names, or LabelEncoders not loaded'}), 500
 
     try:
         # Extract the model from the dictionary
@@ -487,15 +491,10 @@ def predict():
         input_df['Seats'] = int(request.form['seats'])
         input_df['Car_Age'] = int(request.form['car_age'])
         
-        location_col = f"Location_{request.form['location']}"
-        fuel_type_col = f"Fuel_Type_{request.form['fuel_type']}"
-        transmission_col = f"Transmission_{request.form['transmission']}"
-        owner_type_col = f"Owner_Type_{request.form['owner_type']}"
-        brand_col = f"Brand_{request.form['brand']}"
-        
-        for col in [location_col, fuel_type_col, transmission_col, owner_type_col, brand_col]:
-            if col in input_df.columns:
-                input_df[col] = 1
+        # Encode categorical features using LabelEncoders
+        for feature, encoder in label_encoders.items():
+            if feature in request.form:
+                input_df[feature] = encoder.transform([request.form[feature]])[0]
         
         # Use the extracted model object for prediction
         prediction = model_obj.predict(input_df)
@@ -622,8 +621,8 @@ def predict():
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
-    if model is None or feature_names is None:
-        return jsonify({'error': 'Model or feature names not loaded'}), 500
+    if model is None or feature_names is None or label_encoders is None:
+        return jsonify({'error': 'Model, feature names, or LabelEncoders not loaded'}), 500
 
     try:
         # Extract the model from the dictionary
@@ -651,30 +650,10 @@ def api_predict():
             if col in data:
                 input_df[col] = dtype(data[col])
         
-        if 'Location' in data:
-            col = f"Location_{data['Location']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Fuel_Type' in data:
-            col = f"Fuel_Type_{data['Fuel_Type']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Transmission' in data:
-            col = f"Transmission_{data['Transmission']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Owner_Type' in data:
-            col = f"Owner_Type_{data['Owner_Type']}"
-            if col in input_df.columns:
-                input_df[col] = 1
-                
-        if 'Brand' in data:
-            col = f"Brand_{data['Brand']}"
-            if col in input_df.columns:
-                input_df[col] = 1
+        # Encode categorical features using LabelEncoders
+        for feature, encoder in label_encoders.items():
+            if feature in data:
+                input_df[feature] = encoder.transform([data[feature]])[0]
         
         # Use the extracted model object for prediction
         prediction = model_obj.predict(input_df)

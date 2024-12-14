@@ -10,19 +10,18 @@ app = Flask(__name__)
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Load the trained model, feature names, and LabelEncoders
+# Load the trained model, feature names, and LabelEncoders from a single pickle file
 def load_model_and_features():
-    model_path = os.getenv('MODEL_PATH', 'updated_model.pkl')
-    feature_names_path = os.getenv('FEATURE_NAMES_PATH', 'feature_names.pkl')
-    label_encoders_path = os.getenv('LABEL_ENCODERS_PATH', 'label_encoders.pkl')
+    model_path = os.getenv('MODEL_PATH', 'best_rf_model.pkl')
     
     try:
         with open(model_path, 'rb') as file:
-            model = pickle.load(file)
-        with open(feature_names_path, 'rb') as file:
-            feature_names = pickle.load(file)
-        with open(label_encoders_path, 'rb') as file:
-            label_encoders = pickle.load(file)
+            combined_data = pickle.load(file)
+        
+        model = combined_data.get('model')
+        feature_names = combined_data.get('feature_names')
+        label_encoders = combined_data.get('label_encoders')
+        
         logging.info("Model, feature names, and LabelEncoders loaded successfully!")
         return model, feature_names, label_encoders
     except Exception as e:

@@ -12,15 +12,19 @@ logging.basicConfig(level=logging.INFO)
 
 # Load the trained model, feature names, and LabelEncoders from a single pickle file
 def load_model_and_features():
-    model_path = os.getenv('MODEL_PATH', 'best_rf_model.pkl')
+    model_path = os.getenv('MODEL_PATH', 'combined_model.pkl')
     
     try:
         with open(model_path, 'rb') as file:
             combined_data = pickle.load(file)
         
+        # Extract components from the combined data
         model = combined_data.get('model')
         feature_names = combined_data.get('feature_names')
         label_encoders = combined_data.get('label_encoders')
+        
+        if model is None or feature_names is None or label_encoders is None:
+            raise ValueError("One or more components (model, feature_names, label_encoders) are missing in the pickle file.")
         
         logging.info("Model, feature names, and LabelEncoders loaded successfully!")
         return model, feature_names, label_encoders
@@ -453,14 +457,6 @@ def predict():
         return jsonify({'error': 'Model, feature names, or LabelEncoders not loaded'}), 500
 
     try:
-        # Extract the model from the dictionary
-        if isinstance(model, dict):
-            if 'model' not in model:
-                return jsonify({'error': 'Model not found in the loaded dictionary'}), 500
-            model_obj = model['model']  # Extract the model object
-        else:
-            model_obj = model  # If it's not a dictionary, assume it's the model object
-
         input_df = pd.DataFrame(0, index=[0], columns=feature_names)
         
         # Fill in numerical features
@@ -476,8 +472,8 @@ def predict():
             if feature in request.form:
                 input_df[feature] = encoder.transform([request.form[feature]])[0]
         
-        # Use the extracted model object for prediction
-        prediction = model_obj.predict(input_df)
+        # Use the model for prediction
+        prediction = model.predict(input_df)
         
         return render_template_string('''
             <!DOCTYPE html>
@@ -605,14 +601,6 @@ def api_predict():
         return jsonify({'error': 'Model, feature names, or LabelEncoders not loaded'}), 500
 
     try:
-        # Extract the model from the dictionary
-        if isinstance(model, dict):
-            if 'model' not in model:
-                return jsonify({'error': 'Model not found in the loaded dictionary'}), 500
-            model_obj = model['model']  # Extract the model object
-        else:
-            model_obj = model  # If it's not a dictionary, assume it's the model object
-
         data = request.get_json()
         
         input_df = pd.DataFrame(0, index=[0], columns=feature_names)
@@ -635,8 +623,8 @@ def api_predict():
             if feature in data:
                 input_df[feature] = encoder.transform([data[feature]])[0]
         
-        # Use the extracted model object for prediction
-        prediction = model_obj.predict(input_df)
+        # Use the model for prediction
+        prediction = model.predict(input_df)
         
         return jsonify({
             'predicted_price': float(prediction[0]),
